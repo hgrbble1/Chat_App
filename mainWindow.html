@@ -1,4 +1,4 @@
-<!<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -33,13 +33,13 @@
   <div class="row">
     <!-- start of receiving messages -->
     <div class="col s6">
-      <ul>page layout<ul>
+      <ul id="receiving">page layout<ul>
     </div>
     <!-- end of receiving messages -->
 
     <!-- start of sending messages -->
     <div class="col s6">
-      <ul class="offset-s2">page layout<ul>
+      <ul class="offset-s2" id="sent">page layout<ul>
     </div>
     <!-- end of receiving messages -->
   </div>
@@ -61,7 +61,7 @@
       </div>
     </form>
     </div>
-  </footer>
+
 
   <script>
     const electron = require('electron');
@@ -79,7 +79,7 @@
       ipcRenderer.send('send:message', message)
     };
 
-    const ul = document.querySelector('ul');
+    const ul = document.querySelector('#receiving');
     ipcRenderer.on('item:add', function(e, item) {
       ul.className = 'collection';
       const li = document.createElement('li');
@@ -89,6 +89,6 @@
       ul.appendChild(li);
     });
   </script>
-</main>
+  </footer>
 
 </html>
