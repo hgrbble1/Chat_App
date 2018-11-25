@@ -2,9 +2,9 @@ const electron = require('electron');
 const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
-var PORT= 3334;
+var PORT= 3333;
 var HOST = '192.168.1.51';
-var portSendTo = 3333;
+var portSendTo = 3334;
 var hostSendTo = '192.168.1.51';
 
 const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
