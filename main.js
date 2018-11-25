@@ -1,8 +1,13 @@
 const electron = require('electron');
 const url = require('url');
 const path = require('path');
+const dgram = require("dgram");
+var PORT= 3334;
+var HOST = '192.168.1.93';
+var portSendTo = 3333;
+var hostSendTo = '192.168.1.93';
 
-const {app, BrowserWindow, Menu, ipcMain} = electron;
+const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
 
 let mainWindow;
 
@@ -27,6 +32,8 @@ app.on('ready', function() {
     // Insert menu
     Menu.setApplicationMenu(mainMenu);
 
+  startServer(PORT,HOST);
+
 });
 
 //Handle create add window
@@ -48,6 +55,23 @@ addWindow.on('close', function(){
   addWindow = null;
 });
 }
+
+ipcMain.on('send:message', function(e, item){
+  var message = new Buffer(item);
+
+var client = dgram.createSocket('udp4');
+client.send(message, 0, message.length, portSendTo, hostSendTo, function(err, bytes) {
+  if (err) throw err;
+  console.log('UDP message sent to ' + portSendTo + ":" + hostSendTo);
+  client.close();
+});
+
+});
+
+ipcMain.on('listen:ForMessage', function(e, item){
+  mainWindow.webContents.send('item:add', item);
+
+});
 
 const mainMenuTemplate = [
   {
@@ -101,3 +125,20 @@ if(process.env.NODE_ENV !== 'production'){
   });
 
 }
+
+function startServer(port,host) {
+  var server = dgram.createSocket('udp4');
+
+  server.on('listening', function() {
+    var address = server.address('udp4');
+    console.log('UDP server listening on ' + address.address + ':' + address.port);
+  });
+
+  server.on('message', function(message, remote) {
+  //ipcRenderer.send('listen:ForMessage', message);
+  console.log(message);
+    mainWindow.webContents.send('item:add', message);
+  });
+
+  server.bind(port, host);
+};
