@@ -5,7 +5,7 @@ const dgram = require("dgram");
 var PORT= 3334;
 var HOST = '192.168.1.51';
 var portSendTo = 3333;
-var hostSendTo = '192.168.1.51';
+var hostSendTo = '192.168.1.208';
 
 const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
 
@@ -14,7 +14,12 @@ let mainWindow;
 //Listen for app to be ready
 app.on('ready', function() {
     //Create new mainWindow
-  mainWindow = new BrowserWindow({});
+    const {width, height} = electron.screen.getPrimaryDisplay().workAreaSize
+    mainWindow = new BrowserWindow({width, height})
+  // mainWindow = new BrowserWindow({
+  //   width: auto,
+  //   height: auto,
+  // });
     //Load html into Window
     mainWindow.loadURL(url.format({
       pathname: path.join(__dirname, 'mainWindow.html'),
@@ -34,15 +39,15 @@ app.on('ready', function() {
 
   startServer(PORT,HOST);
 
+
 });
 
 //Handle create add window
 function createAddWindow(html){
 //Create new mainWindow
 addWindow = new BrowserWindow({
-  width: 300,
-  height: 200,
-  title: 'Add Shopping List item'
+  width: 520,
+  height: 300,
 });
 // Load html into window
 addWindow.loadURL(url.format({

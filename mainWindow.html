@@ -64,26 +64,30 @@
 
 
   <script>
+  var jsonData;
     const electron = require('electron');
     const {
       ipcRenderer
     } = electron;
-
+    const ulsent = document.querySelector('#sent');
     const form = document.querySelector('form');
     form.addEventListener('submit', sendText);
+    window.addEventListener("beforeunload", updateHistoryFile);
     console.log('Im working');
 
     function sendText(e) {
       e.preventDefault();
-      const ulsent = document.querySelector('#sent');
-      const message = document.querySelector("#message").value;
+
+      const message = document.querySelector("#message");
+      updateHistory(jsonData, message.value, true);
       ulsent.className = 'collection';
       const li = document.createElement('li');
       li.className = 'collection-item';
-      const itemText = document.createTextNode(message);
+      const itemText = document.createTextNode(message.value);
       li.appendChild(itemText);
       ulsent.appendChild(li);
-      ipcRenderer.send('send:message', message)
+      ipcRenderer.send('send:message', message.value)
+      message.value = '';
     };
 
     const ulrec = document.querySelector('#receiving');
@@ -95,7 +99,34 @@
       li.appendChild(itemText);
       ulrec.appendChild(li);
     });
+
+    function updateHistoryFile(e) {
+      var filepath = "history.json";// Previously saved path somewhere
+      stringData = JSON.stringify(jsonData);
+
+      if (fs.existsSync(filepath)) {
+        fs.unlink(filepath, (err) => {
+          if (err) {
+              alert("An error ocurred updating the file" + err.message);
+              console.log(err);
+              return;
+            }
+            console.log("File succesfully deleted");
+          });
+        } else {
+          alert("This file doesn't exist, cannot delete");
+        }
+      fs.writeFile(filepath, stringData, (err) => {
+            if(err){
+                alert("An error ocurred creating the file "+ err.message)
+            }
+
+            alert("The file has been succesfully saved");
+        });
+
+    }
   </script>
+  <script type="text/javascript" src="readfile.js"></script>
   </footer>
 
 </html>
