@@ -33,13 +33,13 @@
   <div class="row">
     <!-- start of receiving messages -->
     <div class="col s6">
-      <ul id="receiving">page layout<ul>
+      <ul id="receiving">Received Messages<ul>
     </div>
     <!-- end of receiving messages -->
 
     <!-- start of sending messages -->
     <div class="col s6">
-      <ul class="offset-s2" id="sent">page layout<ul>
+      <ul class="offset-s2" id="sent">Sent Messages<ul>
     </div>
     <!-- end of receiving messages -->
   </div>
@@ -75,18 +75,25 @@
 
     function sendText(e) {
       e.preventDefault();
+      const ulsent = document.querySelector('#sent');
       const message = document.querySelector("#message").value;
+      ulsent.className = 'collection';
+      const li = document.createElement('li');
+      li.className = 'collection-item';
+      const itemText = document.createTextNode(message);
+      li.appendChild(itemText);
+      ulsent.appendChild(li);
       ipcRenderer.send('send:message', message)
     };
 
-    const ul = document.querySelector('#receiving');
+    const ulrec = document.querySelector('#receiving');
     ipcRenderer.on('item:add', function(e, item) {
-      ul.className = 'collection';
+      ulrec.className = 'collection';
       const li = document.createElement('li');
       li.className = 'collection-item';
       const itemText = document.createTextNode(item);
       li.appendChild(itemText);
-      ul.appendChild(li);
+      ulrec.appendChild(li);
     });
   </script>
   </footer>
