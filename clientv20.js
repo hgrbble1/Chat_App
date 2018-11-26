@@ -1,152 +1,11 @@
-const electron = require('electron');
-const url = require('url');
-const path = require('path');
-const dgram = require("dgram");
-//const client = require('./clientv2-send.js');
-//const fs = require('fs');
-var PORT= 3333;
-var HOST = '192.168.1.208';
-var portSendTo = 3334;
-var hostSendTo = '192.168.1.51';
-
-const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
-
-let mainWindow;
-
-//Listen for app to be ready
-app.on('ready', function() {
-    //Create new mainWindow
-  mainWindow = new BrowserWindow({});
-    //Load html into Window
-    mainWindow.loadURL(url.format({
-      pathname: path.join(__dirname, 'mainWindow.html'),
-      protocol:'file',
-      slashes: true
-    }));
-
-    // Quit app when closed
-    mainWindow.on('closed', function(){
-      app.quit();
-    });
-
-    // Build menu from mainMenuTemplate
-    const mainMenu = Menu.buildFromTemplate(mainMenuTemplate);
-    // Insert menu
-    Menu.setApplicationMenu(mainMenu);
-
-  //startServer(PORT,HOST);
-
-});
-
-//Handle create add window
-function createAddWindow(html){
-//Create new mainWindow
-addWindow = new BrowserWindow({
-  width: 300,
-  height: 200,
-  title: 'Add Shopping List item'
-});
-// Load html into window
-addWindow.loadURL(url.format({
-  pathname: path.join(__dirname, html),
-  protocol:'file:',
-  slashes: true
-}));
-// Garbage collection Handle
-addWindow.on('close', function(){
-  addWindow = null;
-});
-}
-
-ipcMain.on('send:message', function(e, item){
-  //var message = new Buffer(item);
-  fs.writeFileSync("lastMessage.txt", item, function(err) {
-    if(err) {
-        return console.log(err);
-    }
-
-    console.log("The file was saved!");
-});
-  fileName='lastMessage.txt';
-  sendHandshakeInit(fileName, 'text', 3333, '192.168.1.24');
-// var client = dgram.createSocket('udp4');
-// client.send(message, 0, message.length, portSendTo, hostSendTo, function(err, bytes) {
-//   if (err) throw err;
-//   console.log('UDP message sent to ' + portSendTo + ":" + hostSendTo);
-//   client.close();
-// });
-
-});
-
-ipcMain.on('listen:ForMessage', function(e, item){
-  mainWindow.webContents.send('item:add', item);
-
-});
-
-const mainMenuTemplate = [
-  {
-    label: 'File',
-    submenu:[
-      {
-        label: 'Upload File',
-        click(){
-          createAddWindow('uploadFile.html');
-        }
-      },
-      {
-        label: 'Upload Picture',
-        click(){
-          createAddWindow('uploadPicture.html');
-        }
-      },
-      {
-        label:'Quit',
-        accelerator: process.platform == 'darwin' ? 'Command+Q' : 'Ctrl+Q',
-        click(){
-          app.quit();
-        }
-      }
-    ]
-  }
-
-];
-
-// If mac, add empty object to Menu
-if(process.platform == 'darwin'){
-  mainMenuTemplate.unshift({});
-}
-
-// Add developer tools item if not in prod
-if(process.env.NODE_ENV !== 'production'){
-  mainMenuTemplate.push({
-    label: 'Developer Tools',
-    submenu:[
-      {
-        label: 'Toggle DevTools',
-        accelerator: process.platform == 'darwin' ? 'Command+I' : 'Ctrl+I',
-        click(item, focusedWindow){
-        focusedWindow.toggleDevTools();
-        }
-      },
-      {
-        role: 'reload'
-      }
-    ]
-  });
-
-}
-
-
-
-
 //#####################################################################################################################################################//#
 //#####################################################################################################################################################//#
 
 var fss = require('fs-slice');
 var fs = require('fs');
-//var FILENAME = 'data/textfile3.txt';
-
-//var dgram = require('dgram');
+var FILENAME = 'data/textfile3.txt';
+var fsImage = fss(FILENAME);
+var dgram = require('dgram');
 var N = 5; //the size of the window
 var windowStart = 1; //the first number of the window
 var packets_received; // stores the data we receive
@@ -154,7 +13,7 @@ var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file fo
 var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
 var MY_PORT = 3333;
 var TARGET_PORT = 3333;
-var MY_HOST= '192.168.1.13';
+var MY_HOST= '192.168.1.24';
 var TARGET_HOST = ''
 var timer;
 var timeout = 1000; //default timeout is 1 second
@@ -162,7 +21,7 @@ var busy = false;
 var drop_packets = false;
 
 var client = dgram.createSocket('udp4');
-client.bind(MY_PORT, MY_HOST);
+client.bind(MY_PORT);
 
 
 
@@ -171,7 +30,6 @@ client.bind(MY_PORT, MY_HOST);
 
 
 function sendHandshakeInit(fileName, fileType, port, host) {
-    var fsImage = fss(fileName);
     var handshake;
     var fsImage = fss(fileName);
         fsImage.avgSliceAsFile({blockSize: 200})
@@ -185,19 +43,19 @@ function sendHandshakeInit(fileName, fileType, port, host) {
         for (let file of files) {
             data = fs.readFileSync(file) ;
             var packet =    {
-            packetType: 'data',
-            fileType: fileType,
+            packetType: 'data', 
+            fileType: fileType, 
             fileName: fileName,
-            numSegments: files.length,
+            numSegments: files.length, 
             segmentNumber: i+1,
             data: Buffer.from(data)
             };
-
+            
             packets_toSend[i] = Buffer.from(JSON.stringify(packet));
             i+=1;
         }
 
-
+       
 
     }).then(function(files) {
         //Now, packets_toSend is populated, and the handshakeInit can send.
@@ -211,9 +69,9 @@ function sendHandshakeInit(fileName, fileType, port, host) {
     }).catch(function (err) {
         console.error(err);
     });
+    
 
-
-
+    
 }
 
 
@@ -222,9 +80,9 @@ function sendHandshakeAck(message, remote) {
     if (!busy) {
         var handshakeAck = {packetType : 'handshakeAck', fileName: message.fileName, numSegments: message.numSegments};
         handshakeAck = Buffer.from(JSON.stringify(handshakeAck));
-        client.send(handshakeAck, 0, handshakeAck.length, remote.port, remote.address, function(err, bytes) {
+        client.send(handshakeAck, 0, handshakeAck.length, remote.port, remote.host, function(err, bytes) {
             if (err) throw err;
-            console.log('UDP handshake ack sent to ' + remote.address + ":" + remote.port);
+            console.log('UDP handshake ack sent to ' + remote.host + ":" + remote.port);
         });
         busy = true;
     }
@@ -241,19 +99,14 @@ function reassembleFile(packets_received) {
         data = Buffer.concat([data, Buffer.from(packet.data)]);
     }
     console.log(data.toString());
-    //ipcMain.send('listen:ForMessage', data.toString());
-     mainWindow.webContents.send('item:add', data.toString());
-
-
-    //TODO: write data to screen
 
     fs.writeFile("test/temp/" + packets_received[0].fileName, data, function(err) {
         if(err) {
             return console.log(err);
         }
-
+    
         console.log("The file was saved!");
-    });
+    }); 
 }
 
 
@@ -261,7 +114,7 @@ function reassembleFile(packets_received) {
 function sendWindow(timedout, remote) {
     //remote is the people who sent us the handshake ack
     //if this was a timeout, then we want to increase the timer time
-
+    
     /*if (timedout && timedout < 5000) {
         timeout += 1000;
     }*/
@@ -277,19 +130,19 @@ function sendWindow(timedout, remote) {
     //resend the packets in the window
     for (i = windowStart-1; i < windowStart+N-1 && i < packets_toSend.length; i++) {
         console.log("i=" + i);
-
+        
         client.send(packets_toSend[i], 0, packets_toSend[i].length, remote.port, remote.address, function(err, bytes) {
             console.log("Sent packet to " +  remote.address + ":" + remote.port);
         }); //send packet number i
     }
-    //set a timer, to call this function again if we don't
+    //set a timer, to call this function again if we don't 
     timer = setTimeout(sendWindow, timeout, true, remote);
-
+    
 }
 client.on('listening', function() {
     var address = client.address('udp4');
     console.log('UDP Server listening on ' + address.address + ":" + address.port);
-
+    
   });
 
 
@@ -306,19 +159,19 @@ client.on('message', function(message, remote) {
         busy = true;
 
     }
-
+    
     //RECEIVED HANDSHAKE ACK
     if (message.packetType == 'handshakeAck') {
         //start Go-Back-N
         acks_received = null;
         windowStart = 1;
         sendWindow(false, remote);
-    }
+    }  
 
-
+    
     //RECEIVED DATA
     if (message.packetType == 'data') {
-
+        
         //send an acknowledgement, add it to our packets_received
         console.log("we received a data packet");
         //if it's the right packet, increment the ackToSend
@@ -335,13 +188,13 @@ client.on('message', function(message, remote) {
         }
         var ack = {packetType: "dataAck", fileName: message.fileName, numSegments: message.numSegments, ackNumber: ackToSend};
         ack = Buffer.from(JSON.stringify(ack));
-        client.send(ack, 0, ack.length, remote.port, remote.address, function(err, bytes) {
+        client.send(ack, 0, ack.length, remote.port, remote.host, function(err, bytes) {
             console.log("sent an ack");
         });
 
         //if we have all packets, reassemble te file
         if (ackToSend == message.numSegments && busy == true) {
-
+            
             reassembleFile(packets_received);
             busy = false;
         }
@@ -379,24 +232,8 @@ client.on('message', function(message, remote) {
         }
 });
 
-//sendHandshakeInit(FILENAME, 'text', TARGET_PORT, TARGET_HOST);
+sendHandshakeInit(FILENAME, 'text', TARGET_PORT, TARGET_HOST);
 
 
 //#####################################################################################################################################################//#
 //#####################################################################################################################################################//#
-// function startServer(port,host) {
-//   var server = dgram.createSocket('udp4');
-//
-//   server.on('listening', function() {
-//     var address = server.address('udp4');
-//     console.log('UDP server listening on ' + address.address + ':' + address.port);
-//   });
-//
-//   server.on('message', function(message, remote) {
-//   //ipcRenderer.send('listen:ForMessage', message);
-//   console.log(message);
-//     mainWindow.webContents.send('item:add', message);
-//   });
-//
-//   server.bind(port, host);
-// };
