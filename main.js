@@ -2,10 +2,10 @@ const electron = require('electron');
 const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
-var PORT= 3334;
-var HOST = '192.168.1.51';
+var PORT= 3333;
+var HOST = '10.102.52.193';
 var portSendTo = 3333;
-var hostSendTo = '192.168.1.208';
+var hostSendTo = '10.102.109.159';
 var fileName_for_files_to_be_stored;
 
 const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
@@ -69,7 +69,7 @@ ipcMain.on('file:upload', function(e, filepath, fileName){
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
     mainWindow.webContents.send('item:add', fileName+"has been sent");
-    sendHandshakeInit(fileName, 'file', 3333, '192.168.1.51');
+    sendHandshakeInit(fileName, 'file', portSendTo, hostSendTo);
     addWindow.close();
 
 });
@@ -86,7 +86,7 @@ ipcMain.on('image:upload', function(e, filepath, fileName){
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
     mainWindow.webContents.send('image:sent', filepath);
-    sendHandshakeInit(fileName, 'image', 3333, '192.168.1.51');
+    sendHandshakeInit(fileName, 'image', portSendTo, hostSendTo);
     addWindow.close();
 
 });
@@ -102,7 +102,7 @@ ipcMain.on('send:message', function(e, item){
     console.log("The file was saved!");
 });
   fileName='lastMessage.txt';
-  sendHandshakeInit(fileName, 'message', 3333, '192.168.1.51');
+  sendHandshakeInit(fileName, 'message', portSendTo, hostSendTo);
 // var client = dgram.createSocket('udp4');
 // client.send(message, 0, message.length, portSendTo, hostSendTo, function(err, bytes) {
 //   if (err) throw err;
@@ -186,17 +186,17 @@ var windowStart = 1; //the first number of the window
 var packets_received; // stores the data we receive
 var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file form.
 var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
-var MY_PORT = 3333;
-var TARGET_PORT = 3333;
-var MY_HOST= '192.168.1.51';
-var TARGET_HOST = ''
+var MY_PORT = PORT;
+var TARGET_PORT = portSendTo;
+var MY_HOST= HOST;
+var TARGET_HOST = portSendTo
 var timer;
 var timeout = 1000; //default timeout is 1 second
 var busy = false;
 var drop_packets = false;
 
 var client = dgram.createSocket('udp4');
-client.bind(MY_PORT, MY_HOST);
+client.bind(PORT, HOST);
 
 
 
