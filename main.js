@@ -68,7 +68,7 @@ ipcMain.on('file:upload', function(e, filepath, fileName){
 
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
-    sendHandshakeInit(fileName, 'file', 3333, '192.168.1.51');
+    sendHandshakeInit(fileName, 'file', 3333, '192.168.1.208');
     addWindow.close();
 
 });
@@ -100,7 +100,7 @@ ipcMain.on('send:message', function(e, item){
     console.log("The file was saved!");
 });
   fileName='lastMessage.txt';
-  sendHandshakeInit(fileName, 'message', 3333, '192.168.1.51');
+  sendHandshakeInit(fileName, 'message', 3333, '192.168.1.208');
 // var client = dgram.createSocket('udp4');
 // client.send(message, 0, message.length, portSendTo, hostSendTo, function(err, bytes) {
 //   if (err) throw err;
@@ -409,10 +409,15 @@ client.on('message', function(message, remote) {
             }*/
              if (message.ackNumber == message.numSegments) {
                 //all acks have been received; stop the timer and stop
+                mainWindow.webContents.send('progress:done', '100%');
                 console.log("We got all acks - file successfully sent!");
                 busy = false;
                 clearTimeout(timer);
             } else if (message.ackNumber == windowStart) {
+              ///Show the progress bar an update interval
+              var percentage = (message.ackNumber/packets_toSend.length) * 100 + '%'
+              mainWindow.webContents.send('progress:update', percentage);
+
                 //Now we must adjust the window
                 windowStart = windowStart+1;
                 console.log("Window now starts at " + windowStart);

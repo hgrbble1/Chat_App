@@ -57,6 +57,9 @@
             <label for="message">Mustache Message</label>
             <button type="submit" class="btn waves-effect waves-light">Send</button>
           </div>
+          <div id='progress' class="progress hide">
+            <div id='determiante'class="determinate" style="width: 0%"></div>
+          </div>
         </div>
       </div>
     </form>
@@ -114,6 +117,27 @@
       //const itemText = document.createTextNode(item);
       li.appendChild(img);
       ulrec.appendChild(li);
+
+    });
+
+    ipcRenderer.on('progress:update', function(e, item) {
+        const progress = document.querySelector('#progress');
+        const determiante = document.querySelector('#determiante');
+        if (progress.classList.contains('hide')) {
+          progress.classList.remove('hide');
+        }
+        determiante.style.width = item;
+
+    });
+
+    ipcRenderer.on('progress:done', function(e, item) {
+      const progress = document.querySelector('#progress');
+      const determiante = document.querySelector('#determiante');
+      determiante.style.width = item;
+      progress.classList.add('hide');
+      // if (progress.classList.contains('hide')) {
+      //   progress.classList.remove('hide');
+      // }
 
     });
 
