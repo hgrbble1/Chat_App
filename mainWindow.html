@@ -100,6 +100,23 @@
       ulrec.appendChild(li);
     });
 
+    ipcRenderer.on('image:add', function(e, item) {
+      console.log('i made it here');
+      const li = document.createElement('li');
+      const img = document.createElement('IMG');
+      //var x = document.createElement("IMG");
+      img.setAttribute("src", item);
+      img.setAttribute("width", "304");
+      img.setAttribute("height", "228");
+      img.setAttribute("alt", "The Pulpit Rock");
+      //document.body.appendChild(x);
+      li.className = 'collection-item';
+      //const itemText = document.createTextNode(item);
+      li.appendChild(img);
+      ulrec.appendChild(li);
+
+    });
+
     function updateHistoryFile(e) {
       var filepath = "history.json";// Previously saved path somewhere
       stringData = JSON.stringify(jsonData);
