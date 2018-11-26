@@ -1,186 +1,11 @@
-const electron = require('electron');
-const url = require('url');
-const path = require('path');
-const dgram = require("dgram");
-var PORT= 3333;
-var HOST = '10.102.109.159';
-var portSendTo = 3333;
-var hostSendTo = '10.102.52.193';
-var fileName_for_files_to_be_stored;
-
-const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
-
-let mainWindow;
-
-//Listen for app to be ready
-app.on('ready', function() {
-    //Create new mainWindow
-  mainWindow = new BrowserWindow({});
-    //Load html into Window
-    mainWindow.loadURL(url.format({
-      pathname: path.join(__dirname, 'mainWindow.html'),
-      protocol:'file',
-      slashes: true
-    }));
-
-    // Quit app when closed
-    mainWindow.on('closed', function(){
-      app.quit();
-    });
-
-    // Build menu from mainMenuTemplate
-    const mainMenu = Menu.buildFromTemplate(mainMenuTemplate);
-    // Insert menu
-    Menu.setApplicationMenu(mainMenu);
-
-  //startServer(PORT,HOST);
-
-});
-
-//Handle create add window
-function createAddWindow(html){
-//Create new mainWindow
-addWindow = new BrowserWindow({
-  width: 420,
-  height: 300,
-  title: 'Add Shopping List item'
-});
-// Load html into window
-addWindow.loadURL(url.format({
-  pathname: path.join(__dirname, html),
-  protocol:'file:',
-  slashes: true
-}));
-// Garbage collection Handle
-addWindow.on('close', function(){
-  addWindow = null;
-});
-}
-// This is where all ipcMain.on functions will be at
-//This is for the file upload;
-ipcMain.on('file:upload', function(e, filepath, fileName){
-  console.log('file upload');
-  // fs.writeFileSync("files/" + fileName, filepath, function(err) {
-  //   if(err) {
-  //     return console.log(err);
-  //   };
-    //console.log('The file was saved');
-
-    fileName_for_files_to_be_stored = fileName;
-    console.log(fileName_for_files_to_be_stored);
-    mainWindow.webContents.send('item:add', fileName+"has been sent");
-    sendHandshakeInit(fileName, 'file', 3333, hostSendTo);
-    addWindow.close();
-
-});
-
-//this is for image:upload
-ipcMain.on('image:upload', function(e, filepath, fileName){
-  console.log('file upload');
-  // fs.writeFileSync("files/" + fileName, filepath, function(err) {
-  //   if(err) {
-  //     return console.log(err);
-  //   };
-    //console.log('The file was saved');
-
-    fileName_for_files_to_be_stored = fileName;
-    console.log(fileName_for_files_to_be_stored);
-    mainWindow.webContents.send('image:sent', filepath);
-    sendHandshakeInit(fileName, 'image', 3333, hostSendTo);
-    addWindow.close();
-
-});
-
-// This is for the send text message
-ipcMain.on('send:message', function(e, item){
-  //var message = new Buffer(item);
-  fs.writeFileSync("lastMessage.txt", item, function(err) {
-    if(err) {
-        return console.log(err);
-    }
-
-    console.log("The file was saved!");
-});
-  fileName='lastMessage.txt';
-  sendHandshakeInit(fileName, 'message', 3333, hostSendTo);
-// var client = dgram.createSocket('udp4');
-// client.send(message, 0, message.length, portSendTo, hostSendTo, function(err, bytes) {
-//   if (err) throw err;
-//   console.log('UDP message sent to ' + portSendTo + ":" + hostSendTo);
-//   client.close();
-// });
-
-});
-
-ipcMain.on('listen:ForMessage', function(e, item){
-  mainWindow.webContents.send('item:add', item);
-
-});
-
-const mainMenuTemplate = [
-  {
-    label: 'File',
-    submenu:[
-      {
-        label: 'Upload File',
-        click(){
-          createAddWindow('uploadFile.html');
-        }
-      },
-      {
-        label: 'Upload Picture',
-        click(){
-          createAddWindow('uploadPicture.html');
-        }
-      },
-      {
-        label:'Quit',
-        accelerator: process.platform == 'darwin' ? 'Command+Q' : 'Ctrl+Q',
-        click(){
-          app.quit();
-        }
-      }
-    ]
-  }
-
-];
-
-// If mac, add empty object to Menu
-if(process.platform == 'darwin'){
-  mainMenuTemplate.unshift({});
-}
-
-// Add developer tools item if not in prod
-if(process.env.NODE_ENV !== 'production'){
-  mainMenuTemplate.push({
-    label: 'Developer Tools',
-    submenu:[
-      {
-        label: 'Toggle DevTools',
-        accelerator: process.platform == 'darwin' ? 'Command+I' : 'Ctrl+I',
-        click(item, focusedWindow){
-        focusedWindow.toggleDevTools();
-        }
-      },
-      {
-        role: 'reload'
-      }
-    ]
-  });
-
-}
-
-
-
-
 //#####################################################################################################################################################//#
 //#####################################################################################################################################################//#
 
 var fss = require('fs-slice');
 var fs = require('fs');
-//var FILENAME = 'data/textfile3.txt';
-
-//var dgram = require('dgram');
+var FILENAME = 'data/textfile3.txt';
+var fsImage = fss(FILENAME);
+var dgram = require('dgram');
 var N = 5; //the size of the window
 var windowStart = 1; //the first number of the window
 var packets_received; // stores the data we receive
@@ -188,7 +13,7 @@ var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file fo
 var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
 var MY_PORT = 3333;
 var TARGET_PORT = 3333;
-var MY_HOST= '10.102.109.159';
+var MY_HOST= '192.168.1.24';
 var TARGET_HOST = ''
 var timer;
 var timeout = 1000; //default timeout is 1 second
@@ -196,7 +21,7 @@ var busy = false;
 var drop_packets = false;
 
 var client = dgram.createSocket('udp4');
-client.bind(PORT, HOST);
+client.bind(MY_PORT);
 
 
 
@@ -205,10 +30,9 @@ client.bind(PORT, HOST);
 
 
 function sendHandshakeInit(fileName, fileType, port, host) {
-    var fsImage = fss(fileName);
     var handshake;
-    var fsImage = fss(fileName, {destPath:"test/"});
-        fsImage.avgSliceAsFile({blockSize: 200, destPath:"test/"})
+    var fsImage = fss(fileName);
+        fsImage.avgSliceAsFile({blockSize: 200})
         .then(function (files) {
         handshake = {packetType: 'handshakeInit', fileName: fileName, fileType: fileType, numSegments:files.length};
         handshake = Buffer.from(JSON.stringify(handshake));
@@ -256,9 +80,9 @@ function sendHandshakeAck(message, remote) {
     if (!busy) {
         var handshakeAck = {packetType : 'handshakeAck', fileName: message.fileName, numSegments: message.numSegments};
         handshakeAck = Buffer.from(JSON.stringify(handshakeAck));
-        client.send(handshakeAck, 0, handshakeAck.length, remote.port, remote.address, function(err, bytes) {
+        client.send(handshakeAck, 0, handshakeAck.length, remote.port, remote.host, function(err, bytes) {
             if (err) throw err;
-            console.log('UDP handshake ack sent to ' + remote.address + ":" + remote.port);
+            console.log('UDP handshake ack sent to ' + remote.host + ":" + remote.port);
         });
         busy = true;
     }
@@ -275,41 +99,15 @@ function reassembleFile(packets_received) {
         data = Buffer.concat([data, Buffer.from(packet.data)]);
     }
     console.log(data.toString());
-    //If packets recieved is a text file do not write it just send it to the document
-    if (packets_received[0].fileType == 'message') {
-      //ipcMain.send('listen:ForMessage', data.toString());
-       mainWindow.webContents.send('item:add', data.toString());
-    }
-    //If the packets recieved is a file store it in the file path.
-    if (packets_received[0].fileType == 'file') {
-        fs.writeFile("files/" + fileName_for_files_to_be_stored, data, function(err) {
-            if(err) {
-              return console.log(err);
-            }
-            mainWindow.webContents.send("item:add", 'You just received a file in your chat_app directory files\\' + fileName_for_files_to_be_stored);
-            console.log("The file was saved!");
-          });
+
+    fs.writeFile("test/temp/" + packets_received[0].fileName, data, function(err) {
+        if(err) {
+            return console.log(err);
         }
 
-    //If the packets recieved is an image store it in the images.
-    if (packets_received[0].fileType == 'image') {
-      fs.writeFile("images/" + fileName_for_files_to_be_stored, data, function(err) {
-          if(err) {
-              return console.log(err);
-          }
-          console.log('send it to the maindWindow');
-          mainWindow.webContents.send('image:add', 'images/'+fileName_for_files_to_be_stored);
-          console.log("The file was saved!");
-      });
-
-    }
+        console.log("The file was saved!");
+    });
 }
-
-
-    //TODO: write data to screen
-
-
-//}
 
 
 //args: timedout is a boolean, indicating if this was triggered by a timeout.
@@ -390,7 +188,7 @@ client.on('message', function(message, remote) {
         }
         var ack = {packetType: "dataAck", fileName: message.fileName, numSegments: message.numSegments, ackNumber: ackToSend};
         ack = Buffer.from(JSON.stringify(ack));
-        client.send(ack, 0, ack.length, remote.port, remote.address, function(err, bytes) {
+        client.send(ack, 0, ack.length, remote.port, remote.host, function(err, bytes) {
             console.log("sent an ack");
         });
 
@@ -411,15 +209,10 @@ client.on('message', function(message, remote) {
             }*/
              if (message.ackNumber == message.numSegments) {
                 //all acks have been received; stop the timer and stop
-                mainWindow.webContents.send('progress:done', '100%');
                 console.log("We got all acks - file successfully sent!");
                 busy = false;
                 clearTimeout(timer);
             } else if (message.ackNumber == windowStart) {
-              ///Show the progress bar an update interval
-              var percentage = (message.ackNumber/packets_toSend.length) * 100 + '%'
-              mainWindow.webContents.send('progress:update', percentage);
-
                 //Now we must adjust the window
                 windowStart = windowStart+1;
                 console.log("Window now starts at " + windowStart);
@@ -439,24 +232,8 @@ client.on('message', function(message, remote) {
         }
 });
 
-//sendHandshakeInit(FILENAME, 'text', TARGET_PORT, TARGET_HOST);
+sendHandshakeInit(FILENAME, 'text', TARGET_PORT, TARGET_HOST);
 
 
 //#####################################################################################################################################################//#
 //#####################################################################################################################################################//#
-// function startServer(port,host) {
-//   var server = dgram.createSocket('udp4');
-//
-//   server.on('listening', function() {
-//     var address = server.address('udp4');
-//     console.log('UDP server listening on ' + address.address + ':' + address.port);
-//   });
-//
-//   server.on('message', function(message, remote) {
-//   //ipcRenderer.send('listen:ForMessage', message);
-//   console.log(message);
-//     mainWindow.webContents.send('item:add', message);
-//   });
-//
-//   server.bind(port, host);
-// };
