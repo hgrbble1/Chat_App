@@ -32,15 +32,23 @@
   <!-- start of row messages -->
   <div class="row">
     <!-- start of receiving messages -->
-    <div class="col s6">
-      <ul id="receiving">Received Messages<ul>
+    <div class="col s6 offset-s3 center-align">
+      <ul id="history_messages">
+        <!-- <li class="col s4 offset-s3 left-align recMessage">
+          hi
+        </li>
+        <li class=" col s4 offset-s6 right-align sentMessage">right align</li> -->
+      </ul>
     </div>
+    <!--<div class="col s6">
+      <ul id="receiving">Received Messages<ul>
+    </div>-->
     <!-- end of receiving messages -->
 
     <!-- start of sending messages -->
-    <div class="col s6">
+    <!--<div class="col s6">
       <ul class="offset-s2" id="sent">Sent Messages<ul>
-    </div>
+    </div>-->
     <!-- end of receiving messages -->
   </div>
   <!-- end of row messages -->
@@ -72,7 +80,7 @@
     const {
       ipcRenderer
     } = electron;
-    const ulsent = document.querySelector('#sent');
+    const ul = document.querySelector('#history_messages');
     const form = document.querySelector('form');
     form.addEventListener('submit', sendText);
     window.addEventListener("beforeunload", updateHistoryFile);
@@ -82,25 +90,26 @@
       e.preventDefault();
 
       const message = document.querySelector("#message");
-      updateHistory(jsonData, message.value, true);
-      ulsent.className = 'collection';
+      updateHistory(jsonData, message.value, true, 'message');
+      //ulsent.className = 'collection';
       const li = document.createElement('li');
-      li.className = 'collection-item';
+      li.className = 'col s4 offset-s6 right-align sentMessage';
       const itemText = document.createTextNode(message.value);
       li.appendChild(itemText);
-      ulsent.appendChild(li);
+      ul.appendChild(li);
       ipcRenderer.send('send:message', message.value)
       message.value = '';
     };
 
     const ulrec = document.querySelector('#receiving');
     ipcRenderer.on('item:add', function(e, item) {
-      ulrec.className = 'collection';
+      //ulrec.className = 'collection';
       const li = document.createElement('li');
-      li.className = 'collection-item';
+      li.className = 'col s4 offset-s3 left-align recMessage';
       const itemText = document.createTextNode(item);
       li.appendChild(itemText);
-      ulrec.appendChild(li);
+      ul.appendChild(li);
+      updateHistory(jsonData, item, false, 'message');
     });
 
     ipcRenderer.on('image:add', function(e, item) {
@@ -117,7 +126,24 @@
       //const itemText = document.createTextNode(item);
       li.appendChild(img);
       ulrec.appendChild(li);
+      updateHistory(jsonData, item, false, 'image');
+    });
 
+    ipcRenderer.on('image:sent', function(e, item) {
+      console.log('i made it here');
+      const li = document.createElement('li');
+      const img = document.createElement('IMG');
+      //var x = document.createElement("IMG");
+      img.setAttribute("src", item);
+      img.setAttribute("width", "304");
+      img.setAttribute("height", "228");
+      img.setAttribute("alt", "The Pulpit Rock");
+      //document.body.appendChild(x);
+      li.className = 'col s4 offset-s6 right-align sentMessage';
+      //const itemText = document.createTextNode(item);
+      li.appendChild(img);
+      ul.appendChild(li);
+      updateHistory(jsonData, item, true, 'image');
     });
 
     ipcRenderer.on('progress:update', function(e, item) {

@@ -8,3 +8,19 @@ body {
   main {
     flex: 1 0 auto;
   }
+
+.recMessage {
+  background-color: grey;
+  color: white;
+  border-radius: 15px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.sentMessage {
+  background-color: green;
+  color: white;
+  border-radius: 15px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}

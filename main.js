@@ -41,8 +41,8 @@ app.on('ready', function() {
 function createAddWindow(html){
 //Create new mainWindow
 addWindow = new BrowserWindow({
-  width: 300,
-  height: 200,
+  width: 420,
+  height: 300,
   title: 'Add Shopping List item'
 });
 // Load html into window
@@ -68,7 +68,8 @@ ipcMain.on('file:upload', function(e, filepath, fileName){
 
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
-    sendHandshakeInit(fileName, 'file', 3333, '192.168.1.208');
+    mainWindow.webContents.send('item:add', fileName+"has been sent");
+    sendHandshakeInit(fileName, 'file', 3333, '192.168.1.51');
     addWindow.close();
 
 });
@@ -84,6 +85,7 @@ ipcMain.on('image:upload', function(e, filepath, fileName){
 
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
+    mainWindow.webContents.send('image:sent', filepath);
     sendHandshakeInit(fileName, 'image', 3333, '192.168.1.51');
     addWindow.close();
 
@@ -100,7 +102,7 @@ ipcMain.on('send:message', function(e, item){
     console.log("The file was saved!");
 });
   fileName='lastMessage.txt';
-  sendHandshakeInit(fileName, 'message', 3333, '192.168.1.208');
+  sendHandshakeInit(fileName, 'message', 3333, '192.168.1.51');
 // var client = dgram.createSocket('udp4');
 // client.send(message, 0, message.length, portSendTo, hostSendTo, function(err, bytes) {
 //   if (err) throw err;
@@ -284,7 +286,7 @@ function reassembleFile(packets_received) {
             if(err) {
               return console.log(err);
             }
-
+            mainWindow.webContents.send("item:add", 'You just received a file in your chat_app directory files\\' + fileName_for_files_to_be_stored);
             console.log("The file was saved!");
           });
         }

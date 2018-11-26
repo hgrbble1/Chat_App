@@ -22,7 +22,42 @@
       </div>
     </div>
   </div>
+  <script>
+    var filepath;
+    var filename;
+    var app = require('electron').remote;
+    var dialog = app.dialog;
+    const electron = require('electron');
+    const {ipcRenderer} = electron;
+    const file = document.querySelector('#attach');
+    file.addEventListener('click', uploadFile);
+    const sendButton = document.querySelector('#send');
+    sendButton.addEventListener('click', sendFile);
 
+    function uploadFile(e) {
+      e.preventDefault();
+      dialog.showOpenDialog((fileNames) => {
+        // fileNames is an array that contains all the selected
+        if(fileNames === undefined){
+          console.log("No file selected");
+          return;
+        }
+        // var url = window.location.pathname;
+        // var filename = url.substring(url.lastIndexOf('/')+1);
+        // alert(filename);
+        console.log(fileNames[0]);
+        filepath = fileNames[0];
+        filename = filepath.substring(filepath.lastIndexOf('\\')+1);
+        console.log(filename);
+    });
+  };
+
+    function sendFile(e) {
+      e.preventDefault();
+      console.log('hello form the sendFile funciton');
+      ipcRenderer.send('file:upload', filepath, filename);
+    };
+  </script>
 </main>
 <footer>
 </footer>
