@@ -3,8 +3,9 @@ const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
 var PORT= 3333;
-var HOST = '10.102.109.159';
+var HOST = '10.102.52.193';
 var portSendTo = 3333;
+//var hostSendTo = '10.102.109.159'; //hudson's ip
 var hostSendTo = '10.102.52.193';
 var fileName_for_files_to_be_stored;
 
@@ -194,7 +195,7 @@ var timer;
 var timeout = 1000; //default timeout is 1 second
 var busy = false;
 var drop_packets = false;
-
+var BLOCKSIZE = 3000;
 var client = dgram.createSocket('udp4');
 client.bind(PORT, HOST);
 
@@ -208,7 +209,7 @@ function sendHandshakeInit(fileName, fileType, port, host) {
     var fsImage = fss(fileName);
     var handshake;
     var fsImage = fss(fileName, {destPath:"test/"});
-        fsImage.avgSliceAsFile({blockSize: 200, destPath:"test/"})
+        fsImage.avgSliceAsFile({blockSize: BLOCKSIZE, destPath:"test/"})
         .then(function (files) {
         handshake = {packetType: 'handshakeInit', fileName: fileName, fileType: fileType, numSegments:files.length};
         handshake = Buffer.from(JSON.stringify(handshake));
@@ -217,14 +218,14 @@ function sendHandshakeInit(fileName, fileType, port, host) {
         console.log("files: " + files);
 
         for (let file of files) {
-            data = fs.readFileSync(file) ;
+            data = Buffer.from(fs.readFileSync(file)) ;
             var packet =    {
             packetType: 'data',
             fileType: fileType,
             fileName: fileName,
             numSegments: files.length,
             segmentNumber: i+1,
-            data: Buffer.from(data)
+            data: data
             };
 
             packets_toSend[i] = Buffer.from(JSON.stringify(packet));
@@ -268,13 +269,14 @@ function sendHandshakeAck(message, remote) {
 }
 
 function reassembleFile(packets_received) {
-    console.log("We got the whole file!");
+    console.log("We got the whole file! reassembling....");
     var data = new Buffer("");
+    packetData = new Array(packets_received.length);
     for (i=0; i < packets_received.length; i++) {
-        var packet = packets_received[i];
-        data = Buffer.concat([data, Buffer.from(packet.data)]);
+        packetData[i] = Buffer.from(packets_received[i].data);
     }
-    console.log(data.toString());
+    data = Buffer.concat(packetData);
+    //console.log(data.toString());
     //If packets recieved is a text file do not write it just send it to the document
     if (packets_received[0].fileType == 'message') {
       //ipcMain.send('listen:ForMessage', data.toString());
@@ -290,7 +292,7 @@ function reassembleFile(packets_received) {
             console.log("The file was saved!");
           });
         }
-
+    
     //If the packets recieved is an image store it in the images.
     if (packets_received[0].fileType == 'image') {
       fs.writeFile("images/" + fileName_for_files_to_be_stored, data, function(err) {
@@ -303,6 +305,8 @@ function reassembleFile(packets_received) {
       });
 
     }
+
+    console.log("Reassembled the file!");
 }
 
 
