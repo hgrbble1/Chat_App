@@ -70,7 +70,7 @@ ipcMain.on('file:upload', function(e, filepath, fileName){
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
     mainWindow.webContents.send('item:add', fileName+"has been sent");
-    sendHandshakeInit(fileName, 'file', 3333, hostSendTo);
+    sendHandshakeInit(filepath, 'file', 3333, hostSendTo);
     addWindow.close();
 
 });
@@ -188,16 +188,17 @@ var packets_received; // stores the data we receive
 var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file form.
 var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
 var MY_PORT = 3333;
-var TARGET_PORT = 3333;
-var MY_HOST= '10.102.109.159';
-var TARGET_HOST = ''
+var MY_HOST= '10.102.52.193';
+//var TARGETS = {port:3333, address: '10.102.109.159'}; //hudson
+var TARGETS = [{port:3333, address: '10.102.52.193'}];
+var writeToConsole = false;
 var timer;
 var timeout = 1000; //default timeout is 1 second
 var busy = false;
 var drop_packets = false;
-var BLOCKSIZE = 3000;
+var BLOCKSIZE = 2000;
 var client = dgram.createSocket('udp4');
-client.bind(PORT, HOST);
+client.bind(MY_PORT, MY_HOST);
 
 
 
@@ -207,7 +208,41 @@ client.bind(PORT, HOST);
 
 function sendHandshakeInit(fileName, fileType, port, host) {
     var fsImage = fss(fileName);
-    var handshake;
+    var Buffer = require('buffer').Buffer;
+    var chunks = require('buffer-chunks');
+    var files = Buffer.from(fs.readFileSync(fileName));
+    files = chunks(files, BLOCKSIZE);
+    var handshake = {packetType: 'handshakeInit', fileName: fileName, fileType: fileType, numSegments:files.length};
+    handshake = Buffer.from(JSON.stringify(handshake));
+    
+        
+        
+    packets_toSend = new Array(files.length);
+    var i = 0;
+    //console.log("files: " + files);
+    for (let file of files) {
+        data = file;
+        var packet =    {
+        packetType: 'data',
+        fileType: fileType,
+        fileName: fileName,
+        numSegments: files.length,
+        segmentNumber: i+1,
+        data: data
+        };
+        //console.log("slice = " + file.toString());
+        packets_toSend[i] = Buffer.from(JSON.stringify(packet));
+        i+=1;
+    }
+    console.log("sending handshake...");
+    for (let target of TARGETS) {
+        client.send(handshake, 0, handshake.length, target.port, target.address, function(err, bytes) {
+            console.log("Sent handshake to: " + target.address + ":" + target.port + handshake.toString());
+        });
+    }
+    
+
+    /*
     var fsImage = fss(fileName, {destPath:"test/"});
         fsImage.avgSliceAsFile({blockSize: BLOCKSIZE, destPath:"test/"})
         .then(function (files) {
@@ -227,6 +262,8 @@ function sendHandshakeInit(fileName, fileType, port, host) {
             segmentNumber: i+1,
             data: data
             };
+            //This line was added - I think it'll work, not really sure
+            fs.unlinkSync(file);
 
             packets_toSend[i] = Buffer.from(JSON.stringify(packet));
             i+=1;
@@ -238,14 +275,16 @@ function sendHandshakeInit(fileName, fileType, port, host) {
         //Now, packets_toSend is populated, and the handshakeInit can send.
         console.log("This should happen at the very end.");
         console.log("sending handshake...");
-        client.send(handshake, 0, handshake.length, port, host, function(err, bytes) {
-            console.log("Sent handshake: " + handshake.toString());
-            //client.close();
-        });
+        for (let remote of TARGETS) {
+            client.send(handshake, 0, handshake.length, remote.port, remote.address, function(err, bytes) {
+                console.log("Sent handshake: " + handshake.toString());
+            });
+        }
 
     }).catch(function (err) {
         console.error(err);
     });
+    */
 
 
 
@@ -270,7 +309,7 @@ function sendHandshakeAck(message, remote) {
 
 function reassembleFile(packets_received) {
     console.log("We got the whole file! reassembling....");
-    var data = new Buffer("");
+    var data = Buffer.from("");
     packetData = new Array(packets_received.length);
     for (i=0; i < packets_received.length; i++) {
         packetData[i] = Buffer.from(packets_received[i].data);
@@ -336,10 +375,11 @@ function sendWindow(timedout, remote) {
     //resend the packets in the window
     for (i = windowStart-1; i < windowStart+N-1 && i < packets_toSend.length; i++) {
         console.log("i=" + i);
-
-        client.send(packets_toSend[i], 0, packets_toSend[i].length, remote.port, remote.address, function(err, bytes) {
-            console.log("Sent packet to " +  remote.address + ":" + remote.port);
-        }); //send packet number i
+        for (let target of TARGETS) {
+            client.send(packets_toSend[i], 0, packets_toSend[i].length, remote.port, remote.address, function(err, bytes) {
+                console.log("Sent packet to " +  remote.address + ":" + remote.port);
+            }); //send packet number i
+        }   
     }
     //set a timer, to call this function again if we don't
     timer = setTimeout(sendWindow, timeout, true, remote);
@@ -356,7 +396,9 @@ client.on('listening', function() {
 //#######################################################################################################################
 client.on('message', function(message, remote) {
     message = JSON.parse(message.toString());
-    console.log("received packet from " + remote.address + ':' + remote.port + ': ' + JSON.stringify(message));
+    if (writeToConsole){
+        console.log("received packet from " + remote.address + ':' + remote.port + ': ' + JSON.stringify(message));
+    }
     //RECEIVED HANDSHAKE INIT:
     if (message.packetType == 'handshakeInit') {
         ackToSend = 0;
@@ -419,21 +461,23 @@ client.on('message', function(message, remote) {
                 console.log("We got all acks - file successfully sent!");
                 busy = false;
                 clearTimeout(timer);
-            } else if (message.ackNumber == windowStart) {
+            } else if (message.ackNumber >= windowStart) {
               ///Show the progress bar an update interval
               var percentage = (message.ackNumber/packets_toSend.length) * 100 + '%'
               mainWindow.webContents.send('progress:update', percentage);
 
                 //Now we must adjust the window
-                windowStart = windowStart+1;
+                windowStart = message.ackNumber;
                 console.log("Window now starts at " + windowStart);
                 //send the next packet
                 //sendWindow(false, remote);
                 if (windowStart + N - 2 < packets_toSend.length) {
                     console.log("sending packet "  + (windowStart + N - 1));
-                    client.send(packets_toSend[windowStart + N - 2], 0, packets_toSend[windowStart + N - 2].length, remote.port, remote.address, function(err, bytes) {
-                        console.log("Sent packet to " +  remote.address + ":" + remote.port);
-                    });
+                    for (let target of TARGETS) {
+                        client.send(packets_toSend[windowStart + N - 2], 0, packets_toSend[windowStart + N - 2].length, remote.port, remote.address, function(err, bytes) {
+                            console.log("Sent packet to " +  remote.address + ":" + remote.port);
+                        });
+                    }
                     clearTimeout(timer);
                     console.log("Setting another timer, cleared Timeout...");
                     timer = setTimeout(sendWindow, timeout, true, remote);
