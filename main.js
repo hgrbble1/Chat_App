@@ -1,15 +1,18 @@
 const electron = require('electron');
+const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
+//import { app } from("electron";
 const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
-var PORT= 3333;
+var PORT= 3334;
 var HOST = '10.102.52.193';
 var portSendTo = 3333;
 //var hostSendTo = '10.102.109.159'; //hudson's ip
 var hostSendTo = '10.102.52.193';
 var fileName_for_files_to_be_stored;
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=4096');
 
-const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
+
 
 let mainWindow;
 
@@ -186,16 +189,16 @@ var windowStart = 1; //the first number of the window
 //var packets_received; // stores the data we receive
 var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file form.
 //var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
-var MY_PORT = 3334;
-var MY_HOST= '10.102.52.193';
-//var TARGETS = [{port:3333, address: '10.102.109.159'}]; //hudson
+var MY_PORT = 3333;
+var MY_HOST= '192.168.1.106';
+var TARGETS = [{port:3333, address: '192.168.1.106'}]; //hudson
 //var TARGETS = [{port:3333, address: '10.102.52.193'}, {port:3334, address: '10.102.52.193'}, {port:3335, address: '10.102.52.193'}];
-var TARGETS = [{port:3333, address: '10.102.52.193'}];
+//var TARGETS = [{port:3333, address: '10.102.52.193'}];
 var writeToConsole = false;
 var timer;
 var timeout = 1000; //default timeout is 1 second
 var drop_packets = false;
-var BLOCKSIZE = 2000;
+var BLOCKSIZE = 5000;
 var client = dgram.createSocket('udp4');
 client.bind(MY_PORT, MY_HOST);
 
@@ -407,7 +410,7 @@ client.on('message', function(message, remote) {
                 console.log("Window now starts at " + sending[message.fileName].windowStart);
                 //send the next packet
                 if (sending[message.fileName].windowStart + N - 2 < sending[message.fileName].packets_toSend.length) {
-                    console.log("sending packet "  + (sending[message.fileName].windowStart + N - 1));
+                    console.log("sending packet "  + (sending[message.fileName].windowStart + N - 1) + "/" + message.numSegments);
                     for (let target of TARGETS) {
                         client.send(sending[message.fileName].packets_toSend[sending[message.fileName].windowStart + N - 2], 0, 
                             sending[message.fileName].packets_toSend[sending[message.fileName].windowStart + N - 2].length, remote.port, remote.address, function(err, bytes) {
