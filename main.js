@@ -4,8 +4,28 @@ const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
 const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
-var PORT= 3334;
-var HOST = '192.168.1.51';
+var MY_PORT = 3333;
+var MY_HOST= '192.168.1.106';
+var TARGETS = [{port:3333, address: '192.168.1.59'}, {port:3333, address: '192.168.1.106'}, {port:3333, address: '192.168.1.106'}]; //hudson
+//var TARGETS = [{port:3333, address: '10.102.52.193'}, {port:3334, address: '10.102.52.193'}, {port:3335, address: '10.102.52.193'}];
+//var TARGETS = [{port:3333, address: '10.102.52.193'}];
+//var PORT= 3334;
+//var HOST = '192.168.1.51';
+var fss = require('fs-slice');
+var fs = require('fs');
+var N = 5; //the size of the window
+var sending = {};
+var receiving = {};
+var windowStart = 1; //the first number of the window
+//var packets_received; // stores the data we receive
+var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file form.
+//var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
+var writeToConsole = false;
+var timer;
+var timeout = 1000; //default timeout is 1 second
+var drop_packets = false; // drops packets 1% of the time
+var BLOCKSIZE = 5000;
+var client = dgram.createSocket('udp4');
 var portSendTo = 3333;
 //var hostSendTo = '10.102.109.159'; //hudson's ip
 var hostSendTo = '192.168.1.51';
@@ -180,26 +200,7 @@ if(process.env.NODE_ENV !== 'production'){
 //#####################################################################################################################################################//#
 //#####################################################################################################################################################//#
 
-var fss = require('fs-slice');
-var fs = require('fs');
-var N = 5; //the size of the window
-var sending = {};
-var receiving = {};
-var windowStart = 1; //the first number of the window
-//var packets_received; // stores the data we receive
-var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file form.
-//var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
-var MY_PORT = 3333;
-var MY_HOST= '192.168.1.51';
-var TARGETS = [{port:3334, address: '192.168.1.51'}]; //hudson
-//var TARGETS = [{port:3333, address: '10.102.52.193'}, {port:3334, address: '10.102.52.193'}, {port:3335, address: '10.102.52.193'}];
-//var TARGETS = [{port:3333, address: '10.102.52.193'}];
-var writeToConsole = false;
-var timer;
-var timeout = 1000; //default timeout is 1 second
-var drop_packets = false;
-var BLOCKSIZE = 5000;
-var client = dgram.createSocket('udp4');
+
 client.bind(MY_PORT, MY_HOST);
 
 
@@ -370,12 +371,13 @@ client.on('message', function(message, remote) {
         //if it's the right packet, increment the ackToSend
 
         if (message.segmentNumber == receiving[message.fileName].ackToSend + 1) {
-            if (Math.floor(Math.random() * 10) != 9 || !drop_packets) {
+            if (Math.floor(Math.random() * 100) != 99 || !drop_packets) {
                 receiving[message.fileName].ackToSend = message.segmentNumber;
                 console.log("INCREASING ACK");
-                var percentage = (message.ackNumber/message.numSegments) * 100 + '%'
-                console.log(percentage, "percantage");
+                var percentage = (message.segmentNumber/message.numSegments) * 100 + '%'
+                console.log(percentage, "percentage");
                 mainWindow.webContents.send('progress-received:update', percentage);
+                
 
                 if (message.fileType != 'message') {
                     receiving[message.fileName].stream.write(Buffer.from(message.data));

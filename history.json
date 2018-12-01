@@ -1,1 +1,1 @@
-{"messages":[{}]}
+{"messages":[{},{"message":"hey","message-sent":"16:0","sent":true,"type":"message"},{"message":"hey","message-sent":"16:0","sent":false,"type":"message"},{"message":"adn","message-sent":"16:2","sent":true,"type":"message"},{"message":"adn","message-sent":"16:2","sent":false,"type":"message"},{"message":"10MB.txthas been sent","message-sent":"16:18","sent":false,"type":"message"},{"message":"You just received a file in your chat_app directory files\\10MB.txt","message-sent":"16:18","sent":false,"type":"message"}]}
