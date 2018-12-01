@@ -250,6 +250,17 @@ function sendHandshakeInit(fileName, fileType, port, host) {
 
 function sendHandshakeAck(message, remote) {
     //message is already a JSON
+
+    //If the packets recieved is a file store it in the file path.
+    if (message.fileType == 'file') {
+        receiving[message.fileName].stream = fs.createWriteStream("files/" + fileName_for_files_to_be_stored, {flags:'a'});
+        //fs.writeFile("files/" + fileName_for_files_to_be_stored, data, function(err) {
+    }
+    
+    //If the packets recieved is an image store it in the images.
+    else if (message.fileType == 'image') {
+        receiving[message.fileName].stream = fs.createWriteStream("images/" + fileName_for_files_to_be_stored, {flags:'a'});
+    }
     var handshakeAck = {packetType : 'handshakeAck', fileName: message.fileName, numSegments: message.numSegments};
     handshakeAck = Buffer.from(JSON.stringify(handshakeAck));
 
@@ -261,45 +272,33 @@ function sendHandshakeAck(message, remote) {
 
 }
 
-function reassembleFile(packets_received) {
+function reassembleFile(packets_received, fileType) {
     console.log("We got the whole file! reassembling....");
-    var data = Buffer.from("");
-    packetData = new Array(packets_received.length);
-    for (i=0; i < packets_received.length; i++) {
-        packetData[i] = Buffer.from(packets_received[i].data);
-    }
-    data = Buffer.concat(packetData);
-    //If packets recieved is a text file do not write it just send it to the document
-    if (packets_received[0].fileType == 'message') {
-      //ipcMain.send('listen:ForMessage', data.toString());
-       mainWindow.webContents.send('item:add', data.toString());
-    }
-    //If the packets recieved is a file store it in the file path.
-    if (packets_received[0].fileType == 'file') {
-        fs.writeFile("files/" + fileName_for_files_to_be_stored, data, function(err) {
-            if(err) {
-              return console.log(err);
-            }
-            mainWindow.webContents.send("item:add", 'You just received a file in your chat_app directory files\\' + fileName_for_files_to_be_stored);
-            console.log("The file was saved!");
-          });
+    if (fileType == 'message') {
+        //ipcMain.send('listen:ForMessage', data.toString());
+        
+        var data = Buffer.from("");
+        packetData = new Array(packets_received.length);
+        for (i=0; i < packets_received.length; i++) {
+            packetData[i] = Buffer.from(packets_received[i].data);
         }
-    
-    //If the packets recieved is an image store it in the images.
-    if (packets_received[0].fileType == 'image') {
-      fs.writeFile("images/" + fileName_for_files_to_be_stored, data, function(err) {
-          if(err) {
-              return console.log(err);
-          }
-          console.log('send it to the maindWindow');
-          mainWindow.webContents.send('image:add', 'images/'+fileName_for_files_to_be_stored);
-          console.log("The file was saved!");
-      });
-
+        data = Buffer.concat(packetData);
+        mainWindow.webContents.send('item:add', data.toString());
     }
+    
 
-    console.log("Reassembled the file!");
-    console.time("receive")
+    else if (fileType == 'file') {
+        mainWindow.webContents.send("item:add", 'You just received a file in your chat_app directory files\\' + fileName_for_files_to_be_stored);
+        console.log("The file was saved!");
+    }
+    else if (fileType == 'image'){
+        mainWindow.webContents.send("item:add", 'You just received a file in your chat_app directory images\\' + fileName_for_files_to_be_stored);
+        console.log("The file was saved!");
+    }
+    
+    //If packets recieved is a text file do not write it just send it to the document
+
+    console.timeEnd("receive")
 }
 
 
@@ -348,8 +347,9 @@ client.on('message', function(message, remote) {
     }
     //RECEIVED HANDSHAKE INIT:
     if (message.packetType == 'handshakeInit') {
+
         console.time("receive")
-        receiving[message.fileName] = {packets_received: new Array(message.numSegments), ackToSend: 0};
+        receiving[message.fileName] = {packets_received: new Array(message.numSegments), ackToSend: 0, stream: undefined};
         sendHandshakeAck(message, remote);
     }
 
@@ -372,7 +372,12 @@ client.on('message', function(message, remote) {
             if (Math.floor(Math.random() * 10) != 9 || !drop_packets) {
                 receiving[message.fileName].ackToSend = message.segmentNumber;
                 console.log("INCREASING ACK");
-                receiving[message.fileName].packets_received[message.segmentNumber-1] = message;
+                if (message.fileType != 'message') {
+                    receiving[message.fileName].stream.write(Buffer.from(message.data));
+                }
+                else {
+                    receiving[message.fileName].packets_received[receiving[message.fileName].ackToSend - 1] = message
+                }
             }
             else {
                 console.log("DROPPED PACKET");
@@ -387,7 +392,7 @@ client.on('message', function(message, remote) {
         //if we have all packets, reassemble te file
         if (receiving[message.fileName].ackToSend == message.numSegments) {
 
-            reassembleFile(receiving[message.fileName].packets_received);
+            reassembleFile(receiving[message.fileName].packets_received, message.fileType);
         }
     }
 
