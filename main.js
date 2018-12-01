@@ -430,25 +430,3 @@ client.on('message', function(message, remote) {
             }
         }
 });
-
-//sendHandshakeInit(FILENAME, 'text', TARGET_PORT, TARGET_HOST);
-
-
-//#####################################################################################################################################################//#
-//#####################################################################################################################################################//#
-// function startServer(port,host) {
-//   var server = dgram.createSocket('udp4');
-//
-//   server.on('listening', function() {
-//     var address = server.address('udp4');
-//     console.log('UDP server listening on ' + address.address + ':' + address.port);
-//   });
-//
-//   server.on('message', function(message, remote) {
-//   //ipcRenderer.send('listen:ForMessage', message);
-//   console.log(message);
-//     mainWindow.webContents.send('item:add', message);
-//   });
-//
-//   server.bind(port, host);
-// };
