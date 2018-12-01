@@ -5,12 +5,12 @@ const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
 var PORT= 3334;
-var HOST = '10.102.52.193';
+var HOST = '192.168.1.51';
 var portSendTo = 3333;
 //var hostSendTo = '10.102.109.159'; //hudson's ip
-var hostSendTo = '10.102.52.193';
+var hostSendTo = '192.168.1.51';
 var fileName_for_files_to_be_stored;
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=4096');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=8192');
 
 
 
@@ -190,8 +190,8 @@ var windowStart = 1; //the first number of the window
 var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file form.
 //var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
 var MY_PORT = 3333;
-var MY_HOST= '192.168.1.106';
-var TARGETS = [{port:3333, address: '192.168.1.106'}]; //hudson
+var MY_HOST= '192.168.1.51';
+var TARGETS = [{port:3334, address: '192.168.1.51'}]; //hudson
 //var TARGETS = [{port:3333, address: '10.102.52.193'}, {port:3334, address: '10.102.52.193'}, {port:3335, address: '10.102.52.193'}];
 //var TARGETS = [{port:3333, address: '10.102.52.193'}];
 var writeToConsole = false;
@@ -211,13 +211,14 @@ client.bind(MY_PORT, MY_HOST);
 function sendHandshakeInit(fileName, fileType, port, host) {
     console.time("send");
     var fsImage = fss(fileName);
-    
+    console.log(fileName);
+
     var Buffer = require('buffer').Buffer;
     var chunks = require('buffer-chunks');
     var files = Buffer.from(fs.readFileSync(fileName));
     files = chunks(files, BLOCKSIZE);
-    
-    
+
+
     //console.log("files: " + files);
     for (let target of TARGETS) {
         var handshake = {packetType: 'handshakeInit', fileName: (fileName + JSON.stringify(target)), fileType: fileType, numSegments:files.length};
@@ -242,9 +243,9 @@ function sendHandshakeInit(fileName, fileType, port, host) {
         client.send(handshake, 0, handshake.length, target.port, target.address, function(err, bytes) {
             console.log("Sent handshake to: " + target.address + ":" + target.port + handshake.toString());
         });
-    }   
+    }
 
-    
+
 }
 
 
@@ -256,7 +257,7 @@ function sendHandshakeAck(message, remote) {
         receiving[message.fileName].stream = fs.createWriteStream("files/" + fileName_for_files_to_be_stored, {flags:'a'});
         //fs.writeFile("files/" + fileName_for_files_to_be_stored, data, function(err) {
     }
-    
+
     //If the packets recieved is an image store it in the images.
     else if (message.fileType == 'image') {
         receiving[message.fileName].stream = fs.createWriteStream("images/" + fileName_for_files_to_be_stored, {flags:'a'});
@@ -268,7 +269,7 @@ function sendHandshakeAck(message, remote) {
         if (err) throw err;
         console.log('UDP handshake ack sent to ' + remote.address + ":" + remote.port);
     });
-    
+
 
 }
 
@@ -276,7 +277,7 @@ function reassembleFile(packets_received, fileType) {
     console.log("We got the whole file! reassembling....");
     if (fileType == 'message') {
         //ipcMain.send('listen:ForMessage', data.toString());
-        
+
         var data = Buffer.from("");
         packetData = new Array(packets_received.length);
         for (i=0; i < packets_received.length; i++) {
@@ -285,7 +286,7 @@ function reassembleFile(packets_received, fileType) {
         data = Buffer.concat(packetData);
         mainWindow.webContents.send('item:add', data.toString());
     }
-    
+
 
     else if (fileType == 'file') {
         mainWindow.webContents.send("item:add", 'You just received a file in your chat_app directory files\\' + fileName_for_files_to_be_stored);
@@ -295,7 +296,7 @@ function reassembleFile(packets_received, fileType) {
         mainWindow.webContents.send("item:add", 'You just received a file in your chat_app directory images\\' + fileName_for_files_to_be_stored);
         console.log("The file was saved!");
     }
-    
+
     //If packets recieved is a text file do not write it just send it to the document
 
     console.timeEnd("receive")
@@ -322,7 +323,7 @@ function sendWindow(remote, message) {
     //resend the packets in the window
     for (i = sending[message.fileName].windowStart-1; i < sending[message.fileName].windowStart+N-1 && i < sending[message.fileName].packets_toSend.length; i++) {
         console.log("i=" + i);
-        client.send(sending[message.fileName].packets_toSend[i], 0, 
+        client.send(sending[message.fileName].packets_toSend[i], 0,
             sending[message.fileName].packets_toSend[i].length, remote.port, remote.address, function(err, bytes) {
             console.log("Sent packet to " +  remote.address + ":" + remote.port);
         }); //send packet number i
@@ -372,6 +373,10 @@ client.on('message', function(message, remote) {
             if (Math.floor(Math.random() * 10) != 9 || !drop_packets) {
                 receiving[message.fileName].ackToSend = message.segmentNumber;
                 console.log("INCREASING ACK");
+                var percentage = (message.ackNumber/message.numSegments) * 100 + '%'
+                console.log(percentage, "percantage");
+                mainWindow.webContents.send('progress-received:update', percentage);
+
                 if (message.fileType != 'message') {
                     receiving[message.fileName].stream.write(Buffer.from(message.data));
                 }
@@ -389,10 +394,12 @@ client.on('message', function(message, remote) {
             console.log("sent an ack");
         });
 
-        //if we have all packets, reassemble te file
+        //if we have all packets, reassemble to the file and update the progress bar
         if (receiving[message.fileName].ackToSend == message.numSegments) {
 
+              mainWindow.webContents.send('progress-received:done', '100%');
             reassembleFile(receiving[message.fileName].packets_received, message.fileType);
+
         }
     }
 
@@ -417,7 +424,7 @@ client.on('message', function(message, remote) {
                 if (sending[message.fileName].windowStart + N - 2 < sending[message.fileName].packets_toSend.length) {
                     console.log("sending packet "  + (sending[message.fileName].windowStart + N - 1) + "/" + message.numSegments);
                     for (let target of TARGETS) {
-                        client.send(sending[message.fileName].packets_toSend[sending[message.fileName].windowStart + N - 2], 0, 
+                        client.send(sending[message.fileName].packets_toSend[sending[message.fileName].windowStart + N - 2], 0,
                             sending[message.fileName].packets_toSend[sending[message.fileName].windowStart + N - 2].length, remote.port, remote.address, function(err, bytes) {
                             console.log("Sent packet to " +  remote.address + ":" + remote.port);
                         });
