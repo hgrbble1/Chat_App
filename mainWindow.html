@@ -65,6 +65,8 @@
             <label for="message">Mustache Message</label>
             <button type="submit" class="btn waves-effect waves-light">Send</button>
           </div>
+          <div id='received' class="hide">Receiving Message</div>
+          <div id='sent' class="hide">Sending Message</div>
           <div id='progress' class="progress hide">
             <div id='determiante'class="determinate" style="width: 0%"></div>
           </div>
@@ -146,12 +148,39 @@
       updateHistory(jsonData, item, true, 'image');
     });
 
+    ipcRenderer.on('progress-received:update', function(e,percentage) {
+      const received = document.querySelector('#received');
+      const progress = document.querySelector('#progress');
+      const determiante = document.querySelector('#determiante');
+      if (progress.classList.contains('hide')) {
+        progress.classList.remove('hide');
+      }
+      if (received.classList.contains('hide')) {
+          received.classList.remove('hide');
+        }
+
+      determiante.style.width = percentage;
+    });
+
+    ipcRenderer.on('progress-received:done', function(e,percentage) {
+      const received = document.querySelector('#received');
+      const progress = document.querySelector('#progress');
+      const determiante = document.querySelector('#determiante');
+      determiante.style.width = percentage;
+      progress.classList.add('hide');
+      received.classList.add('hide');
+    });
+
     ipcRenderer.on('progress:update', function(e, item) {
+        const sent = document.querySelector('#sent');
         const progress = document.querySelector('#progress');
         const determiante = document.querySelector('#determiante');
         if (progress.classList.contains('hide')) {
           progress.classList.remove('hide');
         }
+        if (sent.classList.contains('hide')) {
+            sent.classList.remove('hide');
+          }
         determiante.style.width = item;
 
     });
@@ -159,8 +188,10 @@
     ipcRenderer.on('progress:done', function(e, item) {
       const progress = document.querySelector('#progress');
       const determiante = document.querySelector('#determiante');
+      const sent = document.querySelector('#sent');
       determiante.style.width = item;
       progress.classList.add('hide');
+      sent.classList.add('hide');
       // if (progress.classList.contains('hide')) {
       //   progress.classList.remove('hide');
       // }
