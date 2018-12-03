@@ -4,9 +4,9 @@ const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
 const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
-var MY_PORT = 3333;
-var MY_HOST= '192.168.1.106';
-var TARGETS = [{port:3333, address: '192.168.1.59'}, {port:3333, address: '192.168.1.106'}, {port:3333, address: '192.168.1.106'}]; //hudson
+var MY_PORT = 3334;
+var MY_HOST= '192.168.1.208';
+var TARGETS = [{port:3333, address: '192.168.1.208'}]; //hudson
 //var TARGETS = [{port:3333, address: '10.102.52.193'}, {port:3334, address: '10.102.52.193'}, {port:3335, address: '10.102.52.193'}];
 //var TARGETS = [{port:3333, address: '10.102.52.193'}];
 //var PORT= 3334;
@@ -206,7 +206,7 @@ client.bind(MY_PORT, MY_HOST);
 
 
 
-
+var ackTimeout;
 
 
 function sendHandshakeInit(fileName, fileType, port, host) {
@@ -244,9 +244,17 @@ function sendHandshakeInit(fileName, fileType, port, host) {
         client.send(handshake, 0, handshake.length, target.port, target.address, function(err, bytes) {
             console.log("Sent handshake to: " + target.address + ":" + target.port + handshake.toString());
         });
+        //set a timeout and if the timeout happens reply to the user saying that the user is not online.
+
     }
+      ackTimeout = setTimeout(tellUser, timeout, "The user you are trying to send a message to is not online");
 
+}
 
+//Send a message to the main window stating the user He is trying to send to is not online.
+function tellUser(message) {
+  mainWindow.webContents.send('user:offline', message);
+  console.log('Telling user the that the other user is offline!!');
 }
 
 
@@ -357,7 +365,9 @@ client.on('message', function(message, remote) {
 
     //RECEIVED HANDSHAKE ACK
     if (message.packetType == 'handshakeAck') {
-        //start Go-Back-N
+        //start Go-Back-N and clear ack timeout.
+        console.log('clearingTimeout ack');
+        clearTimeout(ackTimeout);
         acks_received = null;
         sendWindow(remote, message);
     }
@@ -377,7 +387,7 @@ client.on('message', function(message, remote) {
                 var percentage = (message.segmentNumber/message.numSegments) * 100 + '%'
                 console.log(percentage, "percentage");
                 mainWindow.webContents.send('progress-received:update', percentage);
-                
+
 
                 if (message.fileType != 'message') {
                     receiving[message.fileName].stream.write(Buffer.from(message.data));
