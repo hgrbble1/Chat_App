@@ -12,6 +12,7 @@ to start it, cd into the directory, then run:
 
 note: the ip addresses entered only seem to work if they are on the same network
 
+you can see our project on github: https://github.com/hgrbble1/Chat_App
 
 ## other info
 Here are the templates for our JSON objects sent back and forth:

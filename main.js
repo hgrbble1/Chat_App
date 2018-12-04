@@ -1,35 +1,26 @@
 const electron = require('electron');
 const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
-//import { app } from("electron";
+
 var ip = require('ip');
 const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
 var MY_PORT = 3333;
-var MY_HOST=  ip.address();//'192.168.1.208';
-var TARGETS; //=[{port:3334, address: '192.168.1.208'}, {port:3333, address: '192.168.1.51'}];
-//var TARGETS = [{port:3333, address: '192.168.1.208'}]; //hudson
+var MY_HOST=  ip.address();
+var TARGETS; 
 var fss = require('fs-slice');
 var fs = require('fs');
 //var MY_PORT = 3333;
 ////var TARGETS = [{port:3333, address: '192.168.1.208'}]; //hudson
 var fss = require('fs-slice');
 var fs = require('fs');
-// var MY_PORT = 3333;
-// var MY_HOST= '10.102.52.193';
-// var TARGETS = [{port:3333, address: '192.168.1.208'}]; //hudson
-//var TARGETS = [{port:3333, address: '10.102.52.193'}, {port:3334, address: '10.102.52.193'}, {port:3335, address: '10.102.52.193'}];
-//var TARGETS = [{port:3333, address: '10.102.52.193'}];
-//var PORT= 3334;
-//var HOST = '192.168.1.51';
+
 
 var N = 5; //the size of the window
 var sending = {};
 var receiving = {};
 var windowStart = 1; //the first number of the window
-//var packets_received; // stores the data we receive
 var packets_toSend =['UNINITIALIZED']; //contains the packets of data in file form.
-//var ackToSend = 0; //an integer containing the hight packet we have received, or in other words, the ack to send if we receive another packet
 var writeToConsole = false;
 var timer;
 var timeout = 1000; //default timeout is 1 second
@@ -37,7 +28,6 @@ var drop_packets = false; // drops packets 1% of the time
 var BLOCKSIZE = 5000;
 var client = dgram.createSocket('udp4');
 var portSendTo = 3333;
-//var hostSendTo = '10.102.109.159'; //hudson's ip
 var hostSendTo = '192.168.1.51';
 var fileName_for_files_to_be_stored;
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=8192');
@@ -83,7 +73,6 @@ app.on('ready', function() {
       startWindow = null;
     });
 
-  //startServer(PORT,HOST);
 
 });
 
@@ -110,11 +99,7 @@ addWindow.on('close', function(){
 //This is for the file upload;
 ipcMain.on('file:upload', function(e, filepath, fileName){
   console.log('file upload');
-  // fs.writeFileSync("files/" + fileName, filepath, function(err) {
-  //   if(err) {
-  //     return console.log(err);
-  //   };
-    //console.log('The file was saved');
+
 
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
@@ -127,11 +112,7 @@ ipcMain.on('file:upload', function(e, filepath, fileName){
 //this is for image:upload
 ipcMain.on('image:upload', function(e, filepath, fileName){
   console.log('file upload');
-  // fs.writeFileSync("files/" + fileName, filepath, function(err) {
-  //   if(err) {
-  //     return console.log(err);
-  //   };
-    //console.log('The file was saved');
+
 
     fileName_for_files_to_be_stored = fileName;
     console.log(fileName_for_files_to_be_stored);
@@ -153,12 +134,7 @@ ipcMain.on('send:message', function(e, item){
 });
   fileName='lastMessage.txt';
   sendHandshakeInit(fileName, 'message', 3333, hostSendTo);
-// var client = dgram.createSocket('udp4');
-// client.send(message, 0, message.length, portSendTo, hostSendTo, function(err, bytes) {
-//   if (err) throw err;
-//   console.log('UDP message sent to ' + portSendTo + ":" + hostSendTo);
-//   client.close();
-// });
+
 
 });
 
@@ -317,7 +293,6 @@ function sendHandshakeAck(message, remote) {
 function reassembleFile(packets_received, fileType) {
     console.log("We got the whole file! reassembling....");
     if (fileType == 'message') {
-        //ipcMain.send('listen:ForMessage', data.toString());
 
         var data = Buffer.from("");
         packetData = new Array(packets_received.length);
