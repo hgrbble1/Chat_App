@@ -18,8 +18,10 @@
   "homepage": "https://github.com/hgrbble1/Chat_App#readme",
   "dependencies": {
     "buffer-chunks": "^0.1.1",
+    "csv-types": "^0.3.1",
     "electron": "^3.0.10",
     "fs-slice": "^1.0.0",
-    "fss": "^1.0.0"
+    "fss": "^1.0.0",
+    "ip": "^1.1.5"
   }
 }

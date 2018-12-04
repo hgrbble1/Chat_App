@@ -1,12 +1,14 @@
 const electron = require('electron');
 const {app, BrowserWindow, Menu, ipcMain, ipcRenderer} = electron;
 //import { app } from("electron";
+var ip = require('ip');
 const url = require('url');
 const path = require('path');
 const dgram = require("dgram");
 var MY_PORT = 3334;
-var MY_HOST= '192.168.1.208';
-var TARGETS = [{port:3333, address: '192.168.1.208'}]; //hudson
+var MY_HOST=  ip.address();//'192.168.1.208';
+var TARGETS; //=[{port:3334, address: '192.168.1.208'}, {port:3333, address: '192.168.1.51'}];
+//var TARGETS = [{port:3333, address: '192.168.1.208'}]; //hudson
 //var TARGETS = [{port:3333, address: '10.102.52.193'}, {port:3334, address: '10.102.52.193'}, {port:3335, address: '10.102.52.193'}];
 //var TARGETS = [{port:3333, address: '10.102.52.193'}];
 //var PORT= 3334;
@@ -57,6 +59,22 @@ app.on('ready', function() {
     // Insert menu
     Menu.setApplicationMenu(mainMenu);
 
+    startWindow = new BrowserWindow({
+      width: 420,
+      height: 300,
+      title: 'Mustache Messaging'
+    });
+
+    startWindow.loadURL(url.format({
+      pathname: path.join(__dirname, 'startWindow.html'),
+      protocol:'file:',
+      slashes: true
+    }));
+
+    startWindow.on('closed', function(){
+      startWindow = null;
+    });
+
   //startServer(PORT,HOST);
 
 });
@@ -67,7 +85,7 @@ function createAddWindow(html){
 addWindow = new BrowserWindow({
   width: 420,
   height: 300,
-  title: 'Add Shopping List item'
+  title: 'Mustache Messaging'
 });
 // Load html into window
 addWindow.loadURL(url.format({
@@ -140,6 +158,12 @@ ipcMain.on('listen:ForMessage', function(e, item){
   mainWindow.webContents.send('item:add', item);
 
 });
+
+ipcMain.on("target:initialize", function(e, target) {
+  TARGETS = target;
+  console.log(TARGETS);
+  startWindow.close();
+})
 
 const mainMenuTemplate = [
   {
